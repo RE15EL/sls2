@@ -1,0 +1,50 @@
+service: sls2-app
+frameworkVersion: "3"
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  httpApi:
+    cors: true
+  environment:
+    DYNAMODB_CUSTOMER_TABLE: ${self:service}-customerTable-${sls:stage} #nombre de la tabla por variable de entorno
+
+custom:
+  dynamodb:
+    start:
+      migrate: true
+      inMemory: true
+    stage:
+      - dev
+
+plugins:
+  - serverless-dynamodb-local
+  - serverless-offline
+
+functions:
+  saludos:
+    handler: handler.saludos
+    events:
+      - httpApi:
+          path: /hello/{name}
+          method: get
+  createCustomer:
+    handler: createCustomer.createCustomer
+    events:
+      - httpApi:
+          path: /customer
+          method: post
+
+resources:
+  Resources:
+    CustomerTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        AttributeDefinitions:
+          - AttributeName: dni
+            AttributeType: S
+        BillingMode: PAY_PER_REQUEST
+        KeySchema:
+          - AttributeName: dni
+            KeyType: HASH
+        TableName: ${self:service}-customerTable-${sls:stage}
